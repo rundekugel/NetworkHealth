@@ -29,7 +29,7 @@ Features:
 ````json 
 [
   {"typ":"cfg", "info":["v=1","lc=1", "test-comment", "i=17","noerr=1","sslv=0"] },
-  { "typ":"rem", "info: " <more  lines> " }
+  { "typ":"rem", "info": " <more  lines> " }
 ]
 ````
 ### Ping
