@@ -1,10 +1,10 @@
 # NetworkHealth
 Check servers, services and internet connection.
 Features:
-- config via json-file
-- ping a host
-- check for open tcp ports
-- check for http and https service 
+ - config via json-file
+ - ping a hostname or ip
+ - check for open tcp ports 
+ - check for http and https services and pages
 
 ## Usage
 ````
