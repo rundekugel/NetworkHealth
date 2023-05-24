@@ -1,0 +1,21 @@
+[
+  {"typ":"cfg", "info":["v=1","lc=1", "test-comment", "i=17","noerr=1","sslv=0"] },
+  {"typ":"ping", "host":"8.8.8.8", "info":"google-dns for internet", "infobad":"google-dns nicht erreichbar. Keine Verbindung zum Internet!","sub":
+    {"typ":"ping", "host":"github.com",  "infobad":"+no connection to ipv4 github!"}
+  },
+  {"typ":"ping", "host":"fritz.box", "info":"Router", "id":"lp1", "infobad":"no connection to router!"},
+  {"typ":"ping", "host":"localhost", "info":"description", "id":"lp1"},
+  {"typ":"ping", "host":"localhost", "info":"description2 mit sub", "id":"lp2", "sub":
+    [
+      {"typ":"tcp", "host":"localhost:8080","info":"sub1.1"},
+      {"typ":"ping", "host":"localhost","info":"sub1.2",
+        "sub":[
+          {"typ":"tcp", "host":"localhost:8080","info":"ljensins-sub1.2.1"},
+          {"typ":"tcp", "host":"localhost:7777","info":"l7777-sub1.2.2"}              
+        ]
+      }
+    ]
+  }
+]
+
+ 
