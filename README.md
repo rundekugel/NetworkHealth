@@ -29,11 +29,13 @@ Features:
 ````json 
 [
   {"typ":"cfg", "info":["v=1","lc=1", "test-comment", "i=17","noerr=1","sslv=0"] },
-  { "typ":" <more config lines> " }
+  { "typ":"rem", "info: " <more  lines> " }
 ]
-  ````
-  
+````
 ### Ping
+````json 
+  {"typ":"ping", "host":"fritz.box", "info":"Router", "id":"lp1", "infobad":"no connection to router!"},
+````  
 ### TCP
 ````json 
   {"typ":"tcp", "host":"localhost:8080","info":"sub1.1"}
@@ -45,23 +47,33 @@ Features:
 ````  
 ### REM
   For remarks only
-  
-sub config arrays are executed only, if parent is ok.
+````json   
+  {"typ":"rem", "info":"this is only a info" },  
+````  
+### SUB  
+You don't need to check a service on a server, which is not reachable. Sub config arrays are executed only, if parent is ok. And they can be nested, for a more easy view of complex scenarios.
   Example: 
 ````json  
 [
   {"typ":"ping", "host":"8.8.8.8", "info":"google-dns for internet", "infobad":"google-dns nicht erreichbar. Keine Verbindung zum Internet!","sub":
      [
-        {"typ":"ping", "host":"github.com",  "infobad":"+no connection to ipv4 github!"},
-        {"typ":"http", "host":"https://github.com",  "infobad":"+github webpage not available!"}
+        {"typ":"ping", "host":"google.com",  "infobad":"+no google server"},
+        {"typ":"ping", "host":"github.com",  "infobad":"+no connection to ipv4 github!", "sub":
+            [
+                {"typ":"http", "host":"https://github.com",  "infobad":"+github webpage not available!"}
+            ]
+        }            
     ]
   }
 ]
 ````
 ### Comments in json file
   if typ value starts with a # , the whole line is ignored
-  
+````json   
+  {"typ":"#ping", "host":"disabled.host.eu", "info":"a temprarily disabled host", "id":"lp1", "infobad":"no connection to backup!"},
+````
+  remark the leading ````#```` in ````"#ping"````
 ### Example
-  see: test/checkServersConfig.json
+  see: [test/checkServersConfig.json](https://github.com/rundekugel/NetworkHealth/blob/main/test/checkServersConfig.json)
 
   
