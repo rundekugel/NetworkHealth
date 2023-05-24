@@ -35,8 +35,14 @@ Features:
   
 ### Ping
 ### TCP
+````json 
+  {"typ":"tcp", "host":"localhost:8080","info":"sub1.1"}
+````
 ### HTTP 
   for HTTP and HTTPS services
+````json   
+  {"typ":"http", "host":"https://github.com",  "infobad":"+github webpage not available!"}
+````  
 ### REM
   For remarks only
   
