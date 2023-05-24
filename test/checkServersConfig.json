@@ -4,7 +4,10 @@
   {"typ":"#rem", "info":"Config can be changed in runtime and will be read again, if all task are done" },
   {"typ":"cfg", "info":["v=1","lc=1", "test-comment", "i=17","noerr=1","sslv=0"] },
   {"typ":"ping", "host":"8.8.8.8", "info":"google-dns for internet", "infobad":"google-dns nicht erreichbar. Keine Verbindung zum Internet!","sub":
-    {"typ":"ping", "host":"github.com",  "infobad":"+no connection to ipv4 github!"}
+     [
+        {"typ":"ping", "host":"github.com",  "infobad":"+no connection to ipv4 github!"},
+        {"typ":"http", "host":"https://github.com",  "infobad":"+github webpage not available!"}
+    ]
   },
   {"typ":"ping", "host":"fritz.box", "info":"Router", "id":"lp1", "infobad":"no connection to router!"},
   {"typ":"ping", "host":"localhost", "info":"description", "id":"lp1"},

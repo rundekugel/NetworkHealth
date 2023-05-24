@@ -239,7 +239,7 @@ class CstatusText():
 
 def usage():
     u = """
-  usage: checkSoServers.py [configfile] [options]
+  usage: checkSomeServers.py [configfile] [options]
    configfile-default= "checkServers.json"
    -v<n>      verbosity 
    -i<n>      intervall in secs
