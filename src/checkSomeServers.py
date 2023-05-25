@@ -15,7 +15,6 @@ usage: call with json-config file as param or:
 """
 
 import json
-import os
 import sys
 import socketserver
 import time
@@ -29,7 +28,7 @@ __version__ = "0.1.3"
 class globs:
     """This is for global values"""
     sockcom = None
-    sockcomr = None
+    sockcomr = []
     sockcomport = 2222
     sockreq = []
     sockclose = 0
@@ -58,36 +57,53 @@ class CstatusText():
 class SockHandler(socketserver.BaseRequestHandler):
     """for communication of other debug tools or visualization"""
     data =b""
+    doloop = 1
 
     def setup(self):
+        globs.sockcomr.append( self.request)
+        self.request.setblocking(0)
         if globs.verbosity:
-            print('{}:{} connected'.format(*self.client_address))
+            print('{}:{} connected'.format(*self.client_address) )
 
     def handle(self):
         # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        if not self.data:
-            print(self.request)
-        else:
-            if b"close" in self.data:
-                globs.sockclose = 1
-                globs.sockcom.shutdown_request(self.request)
+        while not globs.sockclose and self.doloop:
+            try:
+                self.request.getpeername()  # test, if connection alive
+            except:
+                self.doloop = 0
                 return
-
-            if globs.verbosity >3:
-                print("{} wrote:".format(self.client_address[0]))
-                print(self.data)
-            # just send back the same data, but upper-cased
-            while not globs.sockclose:
-                try:
-                    text = (globs.loglines.pop()+os.linesep).encode(errors="ignore")
-                    self.request.sendall(text)
-                    globs.sockcomr = self.request
-                except:
-                    pass
+            try:
+                r = self.request.recv(1024).strip()
+                if r:
+                    print(r)
+                if b"closeall" in r:
+                    globs.sockclose=2
+                    self.doloop = 0
+                    self.request.sendall(b"closed all\r\n")
+                    return
+                if b"close" in r:
+                    self.doloop = 0
+                    self.request.sendall(b"closed\r\n")
+                    return
+                self.data += r
+            except:
+                time.sleep(.1)
 
     def finish(self):
+        self.closeit()
         print('{}:{} disconnected'.format(*self.client_address))
+
+    def closeit(self):
+        self.doloop = 0
+        self.request.close()
+        i = 0
+        for s in globs.sockcomr:
+            if s == self.request:
+                globs.sockcomr.pop(i)   # remove from list
+                return
+            i += 1
+
     # ---
 
 class Cconfig():
@@ -141,14 +157,6 @@ class Cconfig():
             copyStatusFromOldCfgs(self.subs, oldcfg.subs)
 
 
-# def connectsocket(port=None):
-#     if port is None:
-#         port = globs.sockcomport
-#     s = socket.socket(socket.AF_INET,
-#                       socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
-#     s.bind(("0.0.0.0", globs.sockcomport))
-#
-
 def socketwrite(text=""):
     if not globs.sockcom:
         return
@@ -173,9 +181,10 @@ def addlog(text, addtime=True, newLine=True):
         print(text)
     else:
         sys.stdout.write(text)
-    if globs.sockcomr and not globs.sockcomr._closed:
+    for sock in globs.sockcomr:
         try:
-            globs.sockcomr.sendall(text.encode())
+            if not sock._closed:
+                sock.sendall((text).encode())
         except:
             pass
 
