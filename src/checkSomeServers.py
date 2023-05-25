@@ -7,6 +7,7 @@
 check if servers are reachable and can check for http service available
 for linux this must be run as root, because of ping (icmp)
 by rundekugel@github
+for copyright see: MIT License
 
 usage: call with json-config file as param or:
 -v=<0..n>   verbosity level. 0=errors; 1=changes; 2=status; more...
@@ -14,21 +15,82 @@ usage: call with json-config file as param or:
 """
 
 import json
-import sys
 import os
+import sys
+import socketserver
 import time
+import threading
 import checkServers as cs
 
 __author__ = "rundekugel@github"
 __version__ = "0.1.3"
 
-class Cconfig():
-    # cfg_typ = 0
-    # cfg_adr = 1
-    # cfg_info = 2
-    # cfg_info_bad = 3
-    # cfg_sub = 4
 
+class globs:
+    """This is for global values"""
+    sockcom = None
+    sockcomr = None
+    sockcomport = 2222
+    sockreq = []
+    sockclose = 0
+    verbosity = 4
+    loglines =[]
+
+
+class CstatusText():
+    text = "init."
+    callbacks = []
+
+    def register(self, cb):
+        self.callbacks.append(cb)
+
+    def unregister(self, cb):
+        self.callbacks.remove(cb)
+
+    def callall(self, text=None):
+        if text == None:
+            text = self.text
+        globs.loglines.append(text)
+        for cb in self.callbacks:
+            cb(text)
+
+
+class SockHandler(socketserver.BaseRequestHandler):
+    """for communication of other debug tools or visualization"""
+    data =b""
+
+    def setup(self):
+        if globs.verbosity:
+            print('{}:{} connected'.format(*self.client_address))
+
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        if not self.data:
+            print(self.request)
+        else:
+            if b"close" in self.data:
+                globs.sockclose = 1
+                globs.sockcom.shutdown_request(self.request)
+                return
+
+            if globs.verbosity >3:
+                print("{} wrote:".format(self.client_address[0]))
+                print(self.data)
+            # just send back the same data, but upper-cased
+            while not globs.sockclose:
+                try:
+                    text = (globs.loglines.pop()+os.linesep).encode(errors="ignore")
+                    self.request.sendall(text)
+                    globs.sockcomr = self.request
+                except:
+                    pass
+
+    def finish(self):
+        print('{}:{} disconnected'.format(*self.client_address))
+    # ---
+
+class Cconfig():
     # cfg=[]
     # type = None
     # hostname = None
@@ -79,6 +141,26 @@ class Cconfig():
             copyStatusFromOldCfgs(self.subs, oldcfg.subs)
 
 
+# def connectsocket(port=None):
+#     if port is None:
+#         port = globs.sockcomport
+#     s = socket.socket(socket.AF_INET,
+#                       socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
+#     s.bind(("0.0.0.0", globs.sockcomport))
+#
+
+def socketwrite(text=""):
+    if not globs.sockcom:
+        return
+    text = text.encode(errors="ignore")
+    if globs.sockcom.socket:
+        try:
+            # globs.sockcom.socket.sendall(text)
+            pass
+        except:
+            pass
+    return
+
 def timestamp():
     import datetime
     return datetime.datetime.now().strftime("%Y-%m-%d %X")
@@ -91,6 +173,11 @@ def addlog(text, addtime=True, newLine=True):
         print(text)
     else:
         sys.stdout.write(text)
+    if globs.sockcomr and not globs.sockcomr._closed:
+        try:
+            globs.sockcomr.sendall(text.encode())
+        except:
+            pass
 
 def force2list(itemOrList):
   #if no list, make a list from it
@@ -224,19 +311,6 @@ def copyStatusFromOldCfgs(newconfigs, oldconfigs):
         return []
     return []
 
-class CstatusText():
-    text="init."
-    callbacks=[]
-    def register(self, cb):
-        self.callbacks.append(cb)
-    def unregister(self, cb):
-        self.callbacks.remove(cb)
-    def callall(self, text=None):
-        if text==None:
-            text=self.text
-        for cb in self.callbacks:
-            cb(text)
-
 def usage():
     u = """
   usage: checkSomeServers.py [configfile] [options]
@@ -294,7 +368,7 @@ def main():
     a=CstatusText()
     #a.register(addlog)
 
-        # mainloop
+    # mainloop
     while repcnt:
         repcnt -= 1
         r = 0
@@ -330,6 +404,8 @@ def main():
                     sys.stderr = _saveErrOut
                 if p[0]=="sslv":
                   verifysslcert=int(p[1],10)
+                if p[0]=="sockcomport":
+                  globs.sockcomport = int(p[1],10)
                 if p[0] == "timeout":
                     t=verifysslcert=int(p[1],10)
                     if t:
@@ -339,7 +415,27 @@ def main():
                   errMsg = traceback.format_exc().split('\n')[-2]  # the error reason only
                   print(errMsg)
 
+        # s = connectsocket()
+        if not globs.sockcom:
+            globs.sockcom = socketserver.TCPServer(("localhost", globs.sockcomport), SockHandler)
+            server_thread = threading.Thread(target=globs.sockcom.serve_forever)
+            server_thread.daemon = True             # Exit the server thread when the main thread terminates
+            server_thread.start()
+            a.register(socketwrite)
+            globs.sockclose = 0
+        else:
+            if globs.sockclose:
+                try:
+                    globs.sockcom.shutdown()
+                except:
+                    pass
+                # globs.sockcom = None
+
+        if globs.sockclose >1:
+            repcnt = 0
+
         CstatusText.text = "check..."
+
         if verbosity:
             addlog("Check...    \r", newLine=0)
         for cfg in cfgs:
@@ -357,8 +453,14 @@ def main():
         a.callall()
     if verbosity:
         addlog("end.")
+    if globs.sockcom:
+        try:
+            globs.sockcom.shutdown()
+        except:
+            pass
 
-
-main()
+# main
+if __name__ == '__main__':
+    sys.exit(main())
 
 # eof

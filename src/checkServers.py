@@ -5,10 +5,14 @@
 This is to check, if server is available, tcp and / or web- service running
 Used by checkSomeServers.py
 
-for copyright see: Apache License
+for copyright see: MIT License
 2018 by lifesim.de
 
 """
+
+__author__ = "rundekugel@github"
+__version__ = "0.1.3"
+
 import time
 import sys
 import icmplib
