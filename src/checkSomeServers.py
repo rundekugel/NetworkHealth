@@ -14,6 +14,14 @@ usage: call with json-config file as param or:
 -sslv=<0|1> check ssl certs
 """
 
+
+"""
+todo:
+check if error commited for sub entries also
+use verbosity =1 only for changes
+"""
+
+
 import json
 import sys
 import socketserver
@@ -22,7 +30,7 @@ import threading
 import checkServers as cs
 
 __author__ = "rundekugel@github"
-__version__ = "0.1.3"
+__version__ = "0.3.0"
 
 
 class globs:
@@ -32,7 +40,7 @@ class globs:
     sockcomport = 2222
     sockreq = []
     sockclose = 0
-    verbosity = 4
+    verbosity = 1
     loglines =[]
 
 
@@ -184,7 +192,9 @@ def addlog(text, addtime=True, newLine=True):
     for sock in globs.sockcomr:
         try:
             if not sock._closed:
-                sock.sendall((text).encode())
+                tb = text +"\r\n"
+                tb = tb.encode()
+                sock.sendall(tb)
         except:
             pass
 
@@ -424,14 +434,17 @@ def main():
                   errMsg = traceback.format_exc().split('\n')[-2]  # the error reason only
                   print(errMsg)
 
-        # s = connectsocket()
         if not globs.sockcom:
-            globs.sockcom = socketserver.TCPServer(("localhost", globs.sockcomport), SockHandler)
-            server_thread = threading.Thread(target=globs.sockcom.serve_forever)
-            server_thread.daemon = True             # Exit the server thread when the main thread terminates
-            server_thread.start()
-            a.register(socketwrite)
-            globs.sockclose = 0
+            try:
+                globs.sockcom = socketserver.ThreadingTCPServer(("0.0.0.0", globs.sockcomport), SockHandler)
+                server_thread = threading.Thread(target=globs.sockcom.serve_forever)
+                server_thread.daemon = True             # Exit the server thread when the main thread terminates
+                server_thread.start()
+                a.register(socketwrite)
+                globs.sockclose = 0
+            except:
+                print(f"cound not open control socket on port {globs.sockcomport}!")
+                globs.sockcom = None
         else:
             if globs.sockclose:
                 try:
